@@ -1,6 +1,7 @@
 #import statements - these are the libraries we need to use in our code
 import csv
 import os
+import re
 import statistics
 from datetime import datetime
 from collections import Counter
@@ -18,6 +19,131 @@ SEASON_MAP = {
     9: "Fall",   10: "Fall",  11: "Fall",
 }
 
+#Zahras Components
+def recordObservation():
+    file_exists = os.path.isfile("weather_data.csv")
+    file_empty = os.path.getsize("weather_data.csv") == 0 if file_exists else True
+
+    # date
+    while True:
+        date = input("Enter date (MM-DD-YYYY): ")
+        if re.match(r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-\d{4}$", date):
+            break
+        print("Invalid format.. use MM-DD-YYYY.")
+
+    # temp
+    while True:
+        temp = input("Enter temperature (C): ")
+        try:
+            temp_value = float(temp)
+            if temp_value < -50 or temp_value > 60:
+                print("temperature must not exceed two digits")
+                continue
+            break
+        except:
+            print("Temperature must be a number")
+
+    # condition
+    while True:
+        cond = input("Enter condition (Sunny, Cloudy, Rainy or Windy): ")
+        
+        valid_conditions = ["sunny", "cloudy", "rainy", "windy"]
+        if cond.lower() in valid_conditions:
+            cond = cond.capitalize()
+            break
+        print("Condition must be a word (e.g., sunny, rainy)")
+
+    # humidity
+    while True:
+        humidity = input("Enter humidity (%): ")
+        if humidity.isdigit():
+            h_value = int(humidity)
+            if 0 <= h_value <= 100:
+                break
+            else:
+                print("Humidity must be between 0 and 100")
+        else:
+            print("Humidity must be a whole number")
+
+    # wind speed
+    while True:
+        wind_speed = input("Enter wind speed (km/h): ")
+        try:
+            w_value = float(wind_speed)
+            if w_value < 0:
+                print("Wind speed cannot be negative")
+            elif w_value > 200:
+                print("Wind speed is unrealistically high")
+            else:
+                break
+        except:
+            print("Wind speed must be a number")
+
+    new_row = [date, temp_value, cond, h_value, w_value]
+
+    with open("weather_data.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+
+        if not file_exists or file_empty:
+            writer.writerow(["Date", "Temperature", "Condition", "Humidity", "Wind Speed"])
+
+        writer.writerow(new_row)
+
+    print("your observation is recorded")
+
+def search():
+    search_date = input("Enter the date (MM-DD-YYYY): ")
+    
+    if not re.match(r"\d\d-\d\d-\d\d\d\d", search_date):
+        print("Invalid date format .. enter MM-DD-YYYY")
+        return
+
+    if not os.path.isfile("weather_data.csv"):
+        print("data file not found")
+        return
+
+    date_found = False
+
+    with open("weather_data.csv", mode="r") as file:
+        reader = csv.reader(file)
+        header = next(reader)
+
+        for row in reader:
+            if row[0] == search_date:
+                if not date_found:
+                    print("\nResults:\n")
+                    print(", ".join(header))
+                print(", ".join(row))
+                date_found = True
+
+    if not date_found:
+        print("There are no observations for this date")
+
+def displayTrends():
+    if not os.path.isfile("weather_data.csv"):
+        print("file not found")
+        return
+
+    with open("weather_data.csv", "r") as file:
+        reader = csv.reader(file)
+        next(reader)  # skip header
+
+        print("\nTemperature Trends:\n")
+
+        for row in reader:
+            if len(row) < 2 or row[1] == "":
+                continue
+
+            try:
+                temp = float(row[1])
+            except:
+                continue
+
+            date = row[0]
+            dots = "." * int(temp / 2)
+            print(f"{date:12} | {dots} ({temp}°C)")
+            
+
 # Zainabs Components      
 def init_csv():
     """
@@ -33,7 +159,7 @@ def init_csv():
         print(f"Loaded existing csv file: {CSV_FILE}")
 
     
-def load_observations(self):
+def load_observations():
     """
     Read all rows from the CSV file and return them as a list of dicts.
     """
@@ -171,4 +297,4 @@ def predict_tomorrow(observations):
     print("Month: " + current_month_name)
     print("Predicted temperature: " + str(predicted_temp) + "C")
     print("Likely condition: " + str(predicted_condition))
-    print("This is an estimate based on a real forecast.")    
+    print("This is an estimate based on a real forecast.")
