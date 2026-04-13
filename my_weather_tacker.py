@@ -21,8 +21,8 @@ SEASON_MAP = {
 
 #Zahras Components
 def recordObservation():
-    file_exists = os.path.isfile("weather_data.csv")
-    file_empty = os.path.getsize("weather_data.csv") == 0 if file_exists else True
+    file_exists = os.path.isfile("observations.csv")
+    file_empty = os.path.getsize("observations.csv") == 0 if file_exists else True
 
     # date
     while True:
@@ -81,7 +81,7 @@ def recordObservation():
 
     new_row = [date, temp_value, cond, h_value, w_value]
 
-    with open("weather_data.csv", mode="a", newline="") as file:
+    with open("observations.csv", mode="a", newline="") as file:
         writer = csv.writer(file)
 
         if not file_exists or file_empty:
@@ -98,13 +98,13 @@ def search():
         print("Invalid date format .. enter MM-DD-YYYY")
         return
 
-    if not os.path.isfile("weather_data.csv"):
+    if not os.path.isfile("observations.csv"):
         print("data file not found")
         return
 
     date_found = False
 
-    with open("weather_data.csv", mode="r") as file:
+    with open("observations.csv", mode="r") as file:
         reader = csv.reader(file)
         header = next(reader)
 
@@ -120,11 +120,11 @@ def search():
         print("There are no observations for this date")
 
 def displayTrends():
-    if not os.path.isfile("weather_data.csv"):
+    if not os.path.isfile("observations.csv"):
         print("file not found")
         return
 
-    with open("weather_data.csv", "r") as file:
+    with open("observations.csv", "r") as file:
         reader = csv.reader(file)
         next(reader)  # skip header
 
@@ -164,18 +164,14 @@ def load_observations():
     Read all rows from the CSV file and return them as a list of dicts.
     """
     observations = []
-    if not os.path.exists(CSV_FILE):
-        return observations  # Return empty list if file doesn't exist
-    
     with open(CSV_FILE, mode="r", newline="\n") as f:
         reader = csv.DictReader(f)
         for row in reader:
             # Cast numeric columns so math works later
-            row["temperature_c"] = float(row["temperature_c"])
-            row["humidity_pct"] = float(row["humidity_pct"])
-            row["wind_speed_kmh"] = float(row["wind_speed_kmh"])
+            row["temperature_c"]   = float(row["temperature_c"])
+            row["humidity_pct"]    = float(row["humidity_pct"])
+            row["wind_speed_kmh"]  = float(row["wind_speed_kmh"])
             observations.append(row)
-    
     return observations
     
 def view_statistics(observations):
