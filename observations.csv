@@ -14,3 +14,5 @@ date,temperature_c,condition,humidity_pct,wind_speed_kmh
 01-23-1999,15.0,Rainy,70,3.5
 04-14-2025,27.0,Sunny,40,12.0
 04-13-2026,28.0,Sunny,40,15.0
+05-15-2025,26.0,Rainy,40,12.0
+04-12-2026,25.0,Sunny,50,5.0

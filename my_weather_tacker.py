@@ -24,12 +24,35 @@ def recordObservation():
     file_exists = os.path.isfile("observations.csv")
     file_empty = os.path.getsize("observations.csv") == 0 if file_exists else True
 
+    #read existing dates
+    existing_dates = set()
+    if file_exists and not file_empty:
+        with open("observations.csv", "r") as file:
+            reader = csv.reader(file)
+            next(reader)
+            for row in reader:
+                existing_dates.add(row[0])
+
     # date
     while True:
         date = input("Enter date (MM-DD-YYYY): ")
-        if re.match(r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-\d{4}$", date):
-            break
-        print("Invalid format.. use MM-DD-YYYY.")
+        
+        try:
+            date_obj = datetime.strptime(date, "%m-%d-%Y")
+            min_date = datetime(2025, 1, 1)
+            today = datetime.today()
+            
+            if date_obj < min_date:
+                print("**Date must be from 2025 onwards**")
+            elif date_obj > today:
+                print("**Date cannot be in the future**")
+            elif date in existing_dates:
+                print("**This date already exists**")
+            else:
+                break
+                
+        except:
+            print("**Invalid format.. use MM-DD-YYYY**")
 
     # temp
     while True:
@@ -37,21 +60,21 @@ def recordObservation():
         try:
             temp_value = float(temp)
             if temp_value < -50 or temp_value > 60:
-                print("temperature must not exceed two digits")
+                print("**temperature must not exceed two digits**")
                 continue
             break
         except:
-            print("Temperature must be a number")
+            print("**Temperature must be a number**")
 
     # condition
     while True:
-        cond = input("Enter condition (Sunny, Cloudy, Rainy, Snowy, Windy): ")
-
-        valid_conditions = ["sunny", "cloudy", "rainy", "snowy", "windy"]
+        cond = input("Enter condition (Sunny, Cloudy, Rainy or Windy): ")
+        
+        valid_conditions = ["sunny", "cloudy", "rainy", "windy"]
         if cond.lower() in valid_conditions:
             cond = cond.capitalize()
             break
-        print("Condition must be one of: Sunny, Cloudy, Rainy, Snowy, Windy")
+        print("**Condition must be a word (e.g., sunny, rainy)**")
 
     # humidity
     while True:
@@ -61,9 +84,9 @@ def recordObservation():
             if 0 <= h_value <= 100:
                 break
             else:
-                print("Humidity must be between 0 and 100")
+                print("**Humidity must be between 0 and 100**")
         else:
-            print("Humidity must be a whole number")
+            print("**Humidity must be a whole number**")
 
     # wind speed
     while True:
@@ -71,13 +94,13 @@ def recordObservation():
         try:
             w_value = float(wind_speed)
             if w_value < 0:
-                print("Wind speed cannot be negative")
+                print("**Wind speed cannot be negative**")
             elif w_value > 200:
-                print("Wind speed is unrealistically high")
+                print("**Wind speed is unrealistically high**")
             else:
                 break
         except:
-            print("Wind speed must be a number")
+            print("**Wind speed must be a number**")
 
     new_row = [date, temp_value, cond, h_value, w_value]
 
@@ -89,8 +112,8 @@ def recordObservation():
 
         writer.writerow(new_row)
 
-    print("your observation is recorded")
-
+    print("-Your observation is recorded-")
+    
 def search():
     search_date = input("Enter the date (MM-DD-YYYY): ")
     
@@ -120,29 +143,47 @@ def search():
         print("There are no observations for this date")
 
 def displayTrends():
-    if not os.path.isfile("observations.csv"):
-        print("file not found")
+    if not os.path.isfile("observations.csv") or os.path.getsize("observations.csv") == 0:
+        print("No data available")
         return
 
-    with open("observations.csv", "r") as file:
+    observations = []
+    with open("observations.csv", mode="r") as file:
         reader = csv.reader(file)
-        next(reader)  # skip header
-
-        print("\nTemperature Trends:\n")
-
+        try:
+            header = next(reader)
+        except StopIteration:
+            print("File is empty.")
+            return
+        
         for row in reader:
-            if len(row) < 2 or row[1] == "":
+            if not row or len(row) < 2:
                 continue
-
+                
             try:
-                temp = float(row[1])
-            except:
+                row_date = datetime.strptime(row[0], "%m-%d-%Y")
+                temp_value = float(row[1])
+                observations.append([row_date, row[0], temp_value])
+            except ValueError:
                 continue
 
-            date = row[0]
-            dots = "." * int(temp / 2)
-            print(f"{date:12} | {dots} ({temp}°C)")
-            
+    if not observations:
+        print("No valid data to display.")
+        return
+
+    observations.sort(key=lambda x: x[0], reverse=True)
+    print("\n--- Temperature Trends ---")
+    print(f"{'Date':<12} | {'Trend'}")
+    print("-" * 35)
+
+    for obs in observations:
+        date_str = obs[1]
+        temp = obs[2]
+        num_bars = max(1, int(abs(temp) // 2))
+        bar = "|" * num_bars
+        
+        print(f"{date_str:<12} | {bar} {temp}°C")
+                    
 
 # Zainabs Components      
 def init_csv():
