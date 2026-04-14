@@ -45,13 +45,13 @@ def recordObservation():
 
     # condition
     while True:
-        cond = input("Enter condition (Sunny, Cloudy, Rainy or Windy): ")
-        
-        valid_conditions = ["sunny", "cloudy", "rainy", "windy"]
+        cond = input("Enter condition (Sunny, Cloudy, Rainy, Snowy, Windy): ")
+
+        valid_conditions = ["sunny", "cloudy", "rainy", "snowy", "windy"]
         if cond.lower() in valid_conditions:
             cond = cond.capitalize()
             break
-        print("Condition must be a word (e.g., sunny, rainy)")
+        print("Condition must be one of: Sunny, Cloudy, Rainy, Snowy, Windy")
 
     # humidity
     while True:
@@ -174,6 +174,25 @@ def load_observations():
             observations.append(row)
     return observations
     
+def view_all_observations():
+    """
+    Display all recorded observations in a formatted table.
+    """
+    observations = load_observations()
+    if not observations:
+        print("\nNo observations recorded yet.")
+        return
+    try:
+        from tabulate import tabulate
+        print(tabulate(observations, headers="keys", tablefmt="fancy_grid"))
+    except ImportError:
+        headers = list(observations[0].keys())
+        print("  ".join(f"{h:<18}" for h in headers))
+        print("-" * 80)
+        for obs in observations:
+            print("  ".join(f"{str(obs[h]):<18}" for h in headers))
+
+
 def view_statistics(observations):
     """
     Compute and display summary statistics from all recorded observations.
@@ -247,6 +266,32 @@ def filter_by_season(observations, season):
 
     return matching_observations
 
+def compare_years(observations):
+    """
+    Compare average, min, and max temperature across different years.
+    """
+    if not observations:
+        print("\nNo observations recorded yet.")
+        return
+
+    current_year = datetime.today().year
+    by_year = {}
+    for obs in observations:
+        year = int(obs["date"].split("-")[2])
+        by_year.setdefault(year, []).append(obs)
+
+    if len(by_year) < 2:
+        print("\nNot enough data to compare years (need at least 2 different years).")
+        return
+
+    print("\n--- Year-by-Year Comparison ---")
+    for year in sorted(by_year):
+        temps = [o["temperature_c"] for o in by_year[year]]
+        avg = round(statistics.mean(temps), 1)
+        label = " (current)" if year == current_year else ""
+        print(f"  {year}{label}: {len(by_year[year])} obs | avg {avg}°C | min {min(temps)}°C | max {max(temps)}°C")
+
+
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LinearRegression
 import numpy as np
@@ -294,3 +339,95 @@ def predict_tomorrow(observations):
     print("Predicted temperature: " + str(predicted_temp) + "C")
     print("Likely condition: " + str(predicted_condition))
     print("This is an estimate based on a real forecast.")
+
+#Hadi's Components 
+
+def check_record():
+    observations = load_observations()
+
+    if not observations:
+        print("\nNo observations recorded yet.")
+        return
+
+    threshold = 20.0
+    hottest = max(observations, key=lambda obs: obs["temperature_c"])
+
+    if hottest["temperature_c"] > threshold:
+        print("\n=== Record-Breaking Temperature ===")
+        print(f"  Date        : {hottest['date']}")
+        print(f"  Temperature : {hottest['temperature_c']}°C  *** NEW RECORD ***")
+        print(f"  Condition   : {hottest['condition']}")
+        print(f"  Humidity    : {hottest['humidity_pct']}%")
+        print(f"  Wind Speed  : {hottest['wind_speed_kmh']} km/h")
+    else:
+        print(f"\nNo observation exceeded the threshold of {threshold}°C.")
+
+    return hottest
+
+
+def display_menu():
+    """Display the main menu options."""
+    print("\n=== Weather Tracker ===")
+    print("1. Record a new observation")
+    print("2. View weather statistics")
+    print("3. Search observations by date")
+    print("4. View all observations")
+    print("--- Stretch Goals ---")
+    print("5. Display temperature trends")
+    print("6. Filter by month")
+    print("7. Filter by season")
+    print("8. Predict tomorrow's weather")
+    print("9. Compare current year with previous years")
+    print("10. Check record-breaking temperatures")
+    print("11. Exit")
+    return input("Enter your choice (1-11): ")
+
+
+def main():
+    """Main application loop."""
+    init_csv()
+    print("Welcome to Weather Tracker!")
+
+    while True:
+        choice = display_menu()
+
+        if choice == '1':
+            recordObservation()
+        elif choice == '2':
+            observations = load_observations()
+            view_statistics(observations)
+        elif choice == '3':
+            search()
+        elif choice == '4':
+            view_all_observations()
+        elif choice == '5':
+            displayTrends()
+        elif choice == '6':
+            observations = load_observations()
+            try:
+                month = int(input("Enter month number (1-12): "))
+                results = filter_by_month(observations, month)
+                print(f"\nFound {len(results)} observation(s).")
+                view_statistics(results)
+            except ValueError:
+                print("Invalid month. Please enter a number between 1 and 12.")
+        elif choice == '7':
+            observations = load_observations()
+            season = input("Enter season (Winter, Spring, Summer, Fall): ")
+            results = filter_by_season(observations, season)
+            print(f"\nFound {len(results)} observation(s).")
+            view_statistics(results)
+        elif choice == '8':
+            observations = load_observations()
+            predict_tomorrow(observations)
+        elif choice == '9':
+            observations = load_observations()
+            compare_years(observations)
+        elif choice == '10':
+            check_record()
+        elif choice == '11':
+            print("Thank you for using Weather Tracker. Goodbye!")
+            break
+        else:
+            print("Invalid choice. Please enter a number between 1 and 11.")
+        
